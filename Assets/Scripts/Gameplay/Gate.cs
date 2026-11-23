@@ -91,7 +91,8 @@ namespace MobRush
                     c = highPositiveColor;
                     break;
                 case GateModifierType.Subtract:
-                    label = $"-{value}";
+                    int curSub = (remainingSubPool > 0) ? remainingSubPool : value;
+                    label = $"-{curSub}";
                     c = negativeColor;
                     break;
                 case GateModifierType.Divide:
@@ -103,6 +104,7 @@ namespace MobRush
             if (displayText != null)
             {
                 displayText.text = label;
+                displayText.color = (modifierType == GateModifierType.Multiply && value >= 5) ? Color.yellow : Color.white;
             }
 
             if (glassRenderer != null && glassRenderer.sharedMaterial != null)
@@ -159,14 +161,29 @@ namespace MobRush
 
                         if (remainingSubPool <= 0)
                         {
-                            // Gate is fully depleted! Transform into a positive bonus gate (+5) for all following units
-                            modifierType = GateModifierType.Add;
+                            // Gate broken! Transforms into permanent moving x5 multiplier gate!
+                            modifierType = GateModifierType.Multiply;
                             value = 5;
-                            remainingAddPool = 5;
+                            isMoving = true;
+                            moveRange = 1.8f;
+                            moveSpeed = 2.2f;
+
+                            if (rootTransform != null)
+                            {
+                                startPosition = rootTransform.position;
+                                rootTransform.localScale = Vector3.one * 1.35f;
+                            }
+
                             UpdateVisuals();
 
-                            // Also play rewarding sound effect
-                            if (AudioManager.Instance != null) AudioManager.Instance.PlayUpgrade();
+                            CameraShake.Shake(0.35f, 0.25f);
+                            if (AudioManager.Instance != null)
+                            {
+                                AudioManager.Instance.PlayChampionSpawn();
+                                AudioManager.Instance.PlayUpgrade();
+                            }
+
+                            SpawnBreakthroughBurst(transform.position);
                         }
                         else
                         {
@@ -175,8 +192,9 @@ namespace MobRush
                     }
                     else
                     {
-                        // Already broken / turned positive! Spawn reward clones
-                        SpawnClones(unit, 1);
+                        // Already broken into moving x5! Multiply crowd
+                        int bonusClones = Mathf.Max(0, value - 1);
+                        SpawnClones(unit, bonusClones);
                         if (AudioManager.Instance != null) AudioManager.Instance.PlayGate();
                     }
                     break;
@@ -189,6 +207,24 @@ namespace MobRush
                         if (AudioManager.Instance != null) AudioManager.Instance.PlayPop();
                     }
                     break;
+            }
+        }
+
+        private void SpawnBreakthroughBurst(Vector3 pos)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                spark.name = "BreakthroughSpark";
+                spark.transform.position = pos + Random.insideUnitSphere * 0.4f;
+                spark.transform.localScale = Vector3.one * 0.16f;
+                Renderer r = spark.GetComponent<Renderer>();
+                if (r != null) r.material.color = Color.yellow;
+                Collider col = spark.GetComponent<Collider>();
+                if (col != null) Destroy(col);
+                Rigidbody rb = spark.AddComponent<Rigidbody>();
+                rb.linearVelocity = Random.insideUnitSphere * 5f + Vector3.up * 4f;
+                Destroy(spark, 0.9f);
             }
         }
 

@@ -207,92 +207,75 @@ namespace MobRush
 
         private static void SetupLevelLayout(LevelConfig config, int levelId, int blockCost)
         {
-            // Level 1: Meadow Dawn (Opener: one x2 gate, no hazard)
+            // Level 1: Meadow Dawn (Opener: one x2 gate)
             if (levelId == 1)
             {
                 config.gates.Add(new GateConfig { position = new Vector3(0f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
                 return;
             }
 
-            // Level 2: Meadow Dusk (Both lanes help: x2 and +20)
+            // Level 2: Meadow Dusk (Choice: Safe x2 or -30 Breaker Gate that turns into moving x5!)
             if (levelId == 2)
             {
                 config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
-                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Add, value = 20 });
+                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Subtract, value = 30 });
                 return;
             }
 
-            // Level 3: Meadow Fog (Safe lane x2, other lane -5)
+            // Level 3: Meadow Fog (Safe x2 or -40 Breaker Gate)
             if (levelId == 3)
             {
                 config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
-                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Subtract, value = 5 });
+                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Subtract, value = 40 });
                 return;
             }
 
-            // Level 4: Meadow Rain (First moving bar, hits only player, safe lane has no bar)
+            // Level 4: Meadow Rain (Safe x2 or -50 Breaker Gate -> Moving x5; no unfair player-killing hazard bars)
             if (levelId == 4)
             {
                 config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
-                config.hazards.Add(new HazardConfig
-                {
-                    position = new Vector3(1.8f, 0.5f, 16.0f),
-                    scale = new Vector3(2.5f, 0.8f, 0.5f),
-                    isOscillating = false,
-                    affectsTeam = AffectsTeam.PlayerOnly,
-                    blockCost = blockCost
-                });
+                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Subtract, value = 50 });
                 return;
             }
 
-            // Level 5: Meadow Gold
+            // Level 5: Meadow Gold (Safe x2 or -65 Breaker Gate)
             if (levelId == 5)
             {
                 config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
-                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Add, value = 15 });
+                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Subtract, value = 65 });
                 return;
             }
 
-            // Level 6: Meadow Night (Safe lane x2 empty, risky block costs 4 and hits PlayerOnly)
+            // Level 6: Meadow Night (Moving x2 or -80 Breaker Gate -> Moving x5)
             if (levelId == 6)
             {
-                // Safe lane on left
-                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
-                // Risky block on right, center object is PlayerOnly
-                config.hazards.Add(new HazardConfig
-                {
-                    position = new Vector3(1.8f, 0.5f, 16.0f),
-                    scale = new Vector3(2.2f, 0.8f, 0.5f),
-                    isOscillating = false,
-                    affectsTeam = AffectsTeam.PlayerOnly,
-                    blockCost = blockCost > 0 ? blockCost : 4
-                });
+                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2, isMoving = true, moveRange = 1.2f, moveSpeed = 1.8f });
+                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Subtract, value = 80 });
                 return;
             }
 
             // General 200 level progression layout generator
             // Left safe lane gate
             int gateVal = (levelId % 5 == 0) ? 3 : 2;
-            config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = gateVal });
-
-            // Right lane gate or choice
-            int addVal = 10 + (levelId % 20);
-            config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Add, value = addVal });
-
-            // Center / lane hazard if blockCost > 0 or periodic
-            if (blockCost > 0 || levelId >= 7)
+            bool leftMoving = (levelId % 3 == 0);
+            config.gates.Add(new GateConfig
             {
-                config.hazards.Add(new HazardConfig
-                {
-                    position = new Vector3(1.5f, 0.5f, 16.5f),
-                    scale = new Vector3(2.4f, 0.8f, 0.5f),
-                    isOscillating = (levelId % 4 == 0),
-                    speed = 2.0f,
-                    range = 1.2f,
-                    affectsTeam = AffectsTeam.PlayerOnly,
-                    blockCost = blockCost
-                });
-            }
+                position = new Vector3(-1.8f, 1f, 12.0f),
+                type = GateModifierType.Multiply,
+                value = gateVal,
+                isMoving = leftMoving,
+                moveRange = 1.3f,
+                moveSpeed = 1.9f
+            });
+
+            // Right lane: iconic -99 Breaker Gate that explodes into moving x5 on breakthrough!
+            int subVal = Mathf.Clamp(30 + levelId * 2, 30, 99);
+            config.gates.Add(new GateConfig
+            {
+                position = new Vector3(1.8f, 1f, 12.0f),
+                type = GateModifierType.Subtract,
+                value = subVal
+            });
 
             // Second gate row for higher levels
             if (levelId >= 10)

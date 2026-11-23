@@ -96,7 +96,7 @@ namespace MobRush
             // Trigger T4 on Level 4 start
             else if (levelId == 4 && !SaveManager.Data.tutorialStepsDone.Contains("T4"))
             {
-                TriggerTutorialStep("T4", "This bar hits only your units.");
+                TriggerTutorialStep("T4", "Break the minus gate to unlock moving x5!");
             }
             // Trigger T5 on Level 5 start
             else if (levelId == 5 && !SaveManager.Data.tutorialStepsDone.Contains("T5"))
@@ -145,7 +145,7 @@ namespace MobRush
                     case "T1": activeTutorialText = "Drag left or right to aim."; break;
                     case "T2": activeTutorialText = "Your cannon keeps sending units."; break;
                     case "T3": activeTutorialText = "Choose a gate to grow your crowd."; break;
-                    case "T4": activeTutorialText = "This bar hits only your units."; break;
+                    case "T4": activeTutorialText = "Break the minus gate to unlock moving x5!"; break;
                     case "T5": activeTutorialText = "Their cannon fires too. Shoot the group."; break;
                     case "T6": activeTutorialText = "Reach their cannon to win."; break;
                 }
