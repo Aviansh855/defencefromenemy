@@ -34,6 +34,13 @@ namespace MobRush
         private float animOffset;
         private float baseHeight;
         private static readonly Collider[] neighborBuffer = new Collider[8];
+        private Vector3 cachedPushForce = Vector3.zero;
+
+        private static Mesh eyeMesh;
+        private static Material eyeMaterial;
+        private static Mesh popMesh;
+        private static Material playerPopMat;
+        private static Material enemyPopMat;
 
         public bool IsDead => isDead;
 
@@ -147,38 +154,40 @@ namespace MobRush
             Vector3 forwardDirection = (team == MobTeam.Player) ? Vector3.forward : Vector3.back;
             Vector3 targetVelocity = forwardDirection * moveSpeed;
 
-            // Non-allocating crowd separation: zero GC allocations, maximum 60fps smoothness on mobile
-            int neighborCount = Physics.OverlapSphereNonAlloc(transform.position, crowdSeparationRadius, neighborBuffer);
-            Vector3 pushForce = Vector3.zero;
-
-            for (int i = 0; i < neighborCount; i++)
+            // Interleaved crowd separation (updated every 2nd frame per mob) to halve physics overhead
+            if ((Time.frameCount + Mathf.RoundToInt(animOffset * 10f)) % 2 == 0)
             {
-                Collider col = neighborBuffer[i];
-                if (col != null && col.gameObject != gameObject && col.TryGetComponent<MobUnit>(out var neighborUnit))
+                int neighborCount = Physics.OverlapSphereNonAlloc(transform.position, crowdSeparationRadius, neighborBuffer);
+                cachedPushForce = Vector3.zero;
+
+                for (int i = 0; i < neighborCount; i++)
                 {
-                    if (neighborUnit.team == this.team && !neighborUnit.IsDead)
+                    Collider col = neighborBuffer[i];
+                    if (col != null && col.gameObject != gameObject && col.TryGetComponent<MobUnit>(out var neighborUnit))
                     {
-                        Vector3 away = transform.position - neighborUnit.transform.position;
-                        away.y = 0f;
-                        float dist = away.magnitude;
-                        if (dist > 0.001f && dist < crowdSeparationRadius)
+                        if (neighborUnit.team == this.team && !neighborUnit.IsDead)
                         {
-                            pushForce += away.normalized * ((crowdSeparationRadius - dist) / crowdSeparationRadius) * crowdSeparationForce;
+                            Vector3 away = transform.position - neighborUnit.transform.position;
+                            away.y = 0f;
+                            float dist = away.magnitude;
+                            if (dist > 0.001f && dist < crowdSeparationRadius)
+                            {
+                                cachedPushForce += away.normalized * ((crowdSeparationRadius - dist) / crowdSeparationRadius) * crowdSeparationForce;
+                            }
                         }
                     }
                 }
-            }
 
-            // Clamp max lateral push force to prevent solver explosions
-            pushForce = Vector3.ClampMagnitude(pushForce, 4f);
+                cachedPushForce = Vector3.ClampMagnitude(cachedPushForce, 3.5f);
+            }
 
             if (rb != null)
             {
-                rb.linearVelocity = targetVelocity + pushForce;
+                rb.linearVelocity = targetVelocity + cachedPushForce;
             }
             else
             {
-                transform.position += (targetVelocity + pushForce) * Time.fixedDeltaTime;
+                transform.position += (targetVelocity + cachedPushForce) * Time.fixedDeltaTime;
             }
         }
 
@@ -186,26 +195,30 @@ namespace MobRush
         {
             if (transform.Find("MobEyes") != null) return;
 
+            if (eyeMaterial == null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+                if (shader == null) shader = Shader.Find("Standard");
+                eyeMaterial = new Material(shader) { color = Color.white };
+            }
+
             GameObject eyes = new GameObject("MobEyes");
             eyes.transform.SetParent(transform);
             eyes.transform.localPosition = new Vector3(0f, 0.22f, 0.42f);
             eyes.transform.localRotation = Quaternion.identity;
             eyes.transform.localScale = new Vector3(0.48f, 0.22f, 0.16f);
 
-            GameObject eyeCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            eyeCube.transform.SetParent(eyes.transform);
-            eyeCube.transform.localPosition = Vector3.zero;
-            eyeCube.transform.localRotation = Quaternion.identity;
-            eyeCube.transform.localScale = Vector3.one;
-
-            Collider c = eyeCube.GetComponent<Collider>();
-            if (c != null) Destroy(c);
-
-            Renderer r = eyeCube.GetComponent<Renderer>();
-            if (r != null)
+            MeshFilter mf = eyes.AddComponent<MeshFilter>();
+            if (eyeMesh == null)
             {
-                r.material.color = Color.white;
+                GameObject tempCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                eyeMesh = tempCube.GetComponent<MeshFilter>().sharedMesh;
+                Destroy(tempCube);
             }
+            mf.sharedMesh = eyeMesh;
+
+            MeshRenderer mr = eyes.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = eyeMaterial;
         }
 
         private void OnTriggerEnter(Collider other)
@@ -291,23 +304,35 @@ namespace MobRush
 
         private void SpawnDeathPop()
         {
-            Color c = (team == MobTeam.Player) ? new Color(0.2f, 0.8f, 1f) : new Color(1f, 0.25f, 0.25f);
-            for (int i = 0; i < 3; i++)
+            if (playerPopMat == null)
             {
-                GameObject p = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                p.transform.position = transform.position + Random.insideUnitSphere * 0.15f;
-                p.transform.localScale = Vector3.one * 0.14f;
-
-                Renderer r = p.GetComponent<Renderer>();
-                if (r != null) r.material.color = c;
-
-                Collider col = p.GetComponent<Collider>();
-                if (col != null) col.enabled = false;
-
-                Rigidbody rb = p.AddComponent<Rigidbody>();
-                rb.linearVelocity = (Vector3.up * 2.2f) + Random.insideUnitSphere * 1.8f;
-                Destroy(p, 0.28f);
+                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+                if (shader == null) shader = Shader.Find("Standard");
+                playerPopMat = new Material(shader) { color = new Color(0.2f, 0.8f, 1f) };
+                enemyPopMat = new Material(shader) { color = new Color(1f, 0.25f, 0.25f) };
             }
+
+            Material mat = (team == MobTeam.Player) ? playerPopMat : enemyPopMat;
+
+            GameObject p = new GameObject("PopEffect");
+            p.transform.position = transform.position + Vector3.up * 0.15f;
+            p.transform.localScale = Vector3.one * 0.2f;
+
+            MeshFilter mf = p.AddComponent<MeshFilter>();
+            if (popMesh == null)
+            {
+                GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                popMesh = temp.GetComponent<MeshFilter>().sharedMesh;
+                Destroy(temp);
+            }
+            mf.sharedMesh = popMesh;
+
+            MeshRenderer mr = p.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = mat;
+
+            Rigidbody rb = p.AddComponent<Rigidbody>();
+            rb.linearVelocity = (Vector3.up * 2.5f) + Random.insideUnitSphere * 1.5f;
+            Destroy(p, 0.25f);
         }
     }
 }

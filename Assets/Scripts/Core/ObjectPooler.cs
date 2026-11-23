@@ -73,7 +73,7 @@ namespace MobRush
             return unit;
         }
 
-        public MobUnit SpawnMob(MobTeam team, Vector3 position, Quaternion rotation)
+        public MobUnit SpawnMob(MobTeam team, Vector3 position, Quaternion rotation, int initialGateId = -1)
         {
             // Safety cap: Limit maximum living units to guarantee smooth 60fps & zero crash on Android
             int maxCap = (team == MobTeam.Player) ? 350 : 120;
@@ -105,6 +105,13 @@ namespace MobRush
             unit.transform.rotation = rotation;
             unit.SetTeam(team);
             unit.ResetUnit();
+
+            // CRITICAL FIX: Set gateId BEFORE SetActive(true) so Unity PhysX never triggers recursive OnTriggerEnter!
+            if (initialGateId != -1)
+            {
+                unit.SetLastGateId(initialGateId);
+            }
+
             unit.gameObject.SetActive(true);
 
             if (team == MobTeam.Player) activePlayerCount++;

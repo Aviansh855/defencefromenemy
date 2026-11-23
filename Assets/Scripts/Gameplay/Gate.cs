@@ -30,6 +30,8 @@ namespace MobRush
         private Transform rootTransform;
         private int remainingAddPool = 0;
         private int remainingSubPool = 0;
+        private static Mesh sparkMesh;
+        private static Material sparkMat;
 
         private void Awake()
         {
@@ -215,46 +217,67 @@ namespace MobRush
 
         private void SpawnBreakthroughBurst(Vector3 pos)
         {
-            for (int i = 0; i < 10; i++)
+            if (sparkMat == null)
             {
-                GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                spark.name = "BreakthroughSpark";
+                Shader s = Shader.Find("Universal Render Pipeline/Lit");
+                if (s == null) s = Shader.Find("Standard");
+                sparkMat = new Material(s) { color = Color.yellow };
+            }
+
+            for (int i = 0; i < 6; i++)
+            {
+                GameObject spark = new GameObject("BreakthroughSpark");
                 spark.transform.position = pos + Random.insideUnitSphere * 0.4f;
                 spark.transform.localScale = Vector3.one * 0.16f;
-                Renderer r = spark.GetComponent<Renderer>();
-                if (r != null) r.material.color = Color.yellow;
-                Collider col = spark.GetComponent<Collider>();
-                if (col != null) Destroy(col);
+
+                MeshFilter mf = spark.AddComponent<MeshFilter>();
+                if (sparkMesh == null)
+                {
+                    GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    sparkMesh = temp.GetComponent<MeshFilter>().sharedMesh;
+                    Destroy(temp);
+                }
+                mf.sharedMesh = sparkMesh;
+
+                MeshRenderer mr = spark.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = sparkMat;
+
                 Rigidbody rb = spark.AddComponent<Rigidbody>();
                 rb.linearVelocity = Random.insideUnitSphere * 5f + Vector3.up * 4f;
-                Destroy(spark, 0.9f);
+                Destroy(spark, 0.7f);
             }
         }
 
         private void SpawnClones(MobUnit original, int count)
         {
-            if (ObjectPooler.Instance == null) return;
+            if (ObjectPooler.Instance == null || original == null) return;
 
             bool isChampion = original.transform.localScale.x > 1.2f;
 
+            // CRITICAL FIX: Always spawn clones FORWARD (+Z) of the gate trigger so they never re-enter this gate!
+            float forwardZ = transform.position.z + 1.2f;
+
             for (int i = 0; i < count; i++)
             {
-                Vector3 spawnOffset = new Vector3(
-                    Random.Range(-0.55f, 0.55f),
-                    0f,
-                    Random.Range(-0.3f, 0.3f)
+                Vector3 spawnPos = new Vector3(
+                    Mathf.Clamp(original.transform.position.x + Random.Range(-0.7f, 0.7f), -3.6f, 3.6f),
+                    original.transform.position.y,
+                    forwardZ + (i * 0.15f)
                 );
 
-                MobUnit clone = ObjectPooler.Instance.SpawnMob(original.team, original.transform.position + spawnOffset, original.transform.rotation);
-                if (clone != null)
+                // Pass gateId directly into SpawnMob so lastGateId is set BEFORE SetActive(true)
+                MobUnit clone = ObjectPooler.Instance.SpawnMob(original.team, spawnPos, original.transform.rotation, gateId);
+                if (clone != null && isChampion)
                 {
-                    clone.SetLastGateId(gateId);
-                    if (isChampion)
-                    {
-                        clone.transform.localScale = original.transform.localScale;
-                        clone.combatPower = original.combatPower;
-                    }
+                    clone.transform.localScale = original.transform.localScale;
+                    clone.combatPower = original.combatPower;
                 }
+            }
+
+            // Also advance original unit cleanly past the gate trigger
+            if (original.transform.position.z < transform.position.z + 0.6f)
+            {
+                original.transform.position = new Vector3(original.transform.position.x, original.transform.position.y, transform.position.z + 0.8f);
             }
         }
     }
