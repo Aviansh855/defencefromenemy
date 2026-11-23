@@ -74,6 +74,9 @@ namespace MobRush
 
             CurrentConfig = LevelDatabase.GetLevel(levelId);
 
+            // Apply dynamic visual biome & aesthetic theme (Neon Cyber, Sunset Synthwave, Emerald Horizon)
+            ApplyAestheticTheme(levelId);
+
             // 1. Adjust Track Length
             if (trackFloor != null)
             {
@@ -189,6 +192,81 @@ namespace MobRush
                 if (obj != null) Destroy(obj);
             }
             activeLevelObjects.Clear();
+        }
+
+        private void ApplyAestheticTheme(int levelId)
+        {
+            int themeIndex = (levelId - 1) % 3;
+
+            Color floorColor;
+            Color curbGlowColor;
+            Color wallColor;
+            Color skyColor;
+
+            switch (themeIndex)
+            {
+                case 0:
+                    // Theme 1: Neon Cyber Tokyo (Midnight Obsidian & Vivid Electric Cyan)
+                    floorColor = new Color(0.09f, 0.11f, 0.16f);
+                    curbGlowColor = new Color(0.0f, 0.95f, 1.0f);
+                    wallColor = new Color(0.13f, 0.15f, 0.22f);
+                    skyColor = new Color(0.06f, 0.08f, 0.12f);
+                    break;
+
+                case 1:
+                    // Theme 2: Sunset Synthwave (Deep Violet Asphalt & Radiant Amber Gold)
+                    floorColor = new Color(0.14f, 0.10f, 0.19f);
+                    curbGlowColor = new Color(1.0f, 0.72f, 0.05f);
+                    wallColor = new Color(0.20f, 0.14f, 0.28f);
+                    skyColor = new Color(0.10f, 0.07f, 0.15f);
+                    break;
+
+                default:
+                    // Theme 3: Emerald Horizon (Deep Slate Basalt & Radiant Mint Lime)
+                    floorColor = new Color(0.08f, 0.13f, 0.11f);
+                    curbGlowColor = new Color(0.1f, 1.0f, 0.45f);
+                    wallColor = new Color(0.12f, 0.19f, 0.16f);
+                    skyColor = new Color(0.05f, 0.09f, 0.08f);
+                    break;
+            }
+
+            if (trackFloor != null)
+            {
+                Renderer r = trackFloor.GetComponent<Renderer>();
+                if (r != null) r.material.color = floorColor;
+            }
+
+            if (leftWall != null)
+            {
+                Renderer r = leftWall.GetComponent<Renderer>();
+                if (r != null) r.material.color = wallColor;
+            }
+
+            if (rightWall != null)
+            {
+                Renderer r = rightWall.GetComponent<Renderer>();
+                if (r != null) r.material.color = wallColor;
+            }
+
+            GameObject curbL = GameObject.Find("Curb_L");
+            if (curbL != null)
+            {
+                Renderer r = curbL.GetComponent<Renderer>();
+                if (r != null) r.material.color = curbGlowColor;
+            }
+
+            GameObject curbR = GameObject.Find("Curb_R");
+            if (curbR != null)
+            {
+                Renderer r = curbR.GetComponent<Renderer>();
+                if (r != null) r.material.color = curbGlowColor;
+            }
+
+            Camera mainCam = Camera.main;
+            if (mainCam != null)
+            {
+                mainCam.backgroundColor = skyColor;
+            }
         }
     }
 }

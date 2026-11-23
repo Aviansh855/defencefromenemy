@@ -21,7 +21,7 @@ namespace MobRush
         public bool isMoving = false;
         public float moveRange = 1.6f;
         public float moveSpeed = 2f;
-        public AffectsTeam affectsTeam = AffectsTeam.Both;
+        public AffectsTeam affectsTeam = AffectsTeam.PlayerOnly;
     }
 
     [Serializable]

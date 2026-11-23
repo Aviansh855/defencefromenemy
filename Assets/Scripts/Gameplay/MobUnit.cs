@@ -33,6 +33,7 @@ namespace MobRush
         [Header("Juice & Animation")]
         private float animOffset;
         private float baseHeight;
+        private static readonly Collider[] neighborBuffer = new Collider[8];
 
         public bool IsDead => isDead;
 
@@ -40,6 +41,7 @@ namespace MobRush
         {
             animOffset = Random.Range(0f, 10f);
             baseHeight = transform.position.y;
+            EnsureEyes();
 
             rb = GetComponent<Rigidbody>();
             if (rb != null)
@@ -145,12 +147,13 @@ namespace MobRush
             Vector3 forwardDirection = (team == MobTeam.Player) ? Vector3.forward : Vector3.back;
             Vector3 targetVelocity = forwardDirection * moveSpeed;
 
-            // Simple crowd separation: avoid overlapping same-team mobs
-            Collider[] neighbors = Physics.OverlapSphere(transform.position, crowdSeparationRadius);
+            // Non-allocating crowd separation: zero GC allocations, maximum 60fps smoothness on mobile
+            int neighborCount = Physics.OverlapSphereNonAlloc(transform.position, crowdSeparationRadius, neighborBuffer);
             Vector3 pushForce = Vector3.zero;
 
-            foreach (var col in neighbors)
+            for (int i = 0; i < neighborCount; i++)
             {
+                Collider col = neighborBuffer[i];
                 if (col != null && col.gameObject != gameObject && col.TryGetComponent<MobUnit>(out var neighborUnit))
                 {
                     if (neighborUnit.team == this.team && !neighborUnit.IsDead)
@@ -176,6 +179,32 @@ namespace MobRush
             else
             {
                 transform.position += (targetVelocity + pushForce) * Time.fixedDeltaTime;
+            }
+        }
+
+        private void EnsureEyes()
+        {
+            if (transform.Find("MobEyes") != null) return;
+
+            GameObject eyes = new GameObject("MobEyes");
+            eyes.transform.SetParent(transform);
+            eyes.transform.localPosition = new Vector3(0f, 0.22f, 0.42f);
+            eyes.transform.localRotation = Quaternion.identity;
+            eyes.transform.localScale = new Vector3(0.48f, 0.22f, 0.16f);
+
+            GameObject eyeCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            eyeCube.transform.SetParent(eyes.transform);
+            eyeCube.transform.localPosition = Vector3.zero;
+            eyeCube.transform.localRotation = Quaternion.identity;
+            eyeCube.transform.localScale = Vector3.one;
+
+            Collider c = eyeCube.GetComponent<Collider>();
+            if (c != null) Destroy(c);
+
+            Renderer r = eyeCube.GetComponent<Renderer>();
+            if (r != null)
+            {
+                r.material.color = Color.white;
             }
         }
 

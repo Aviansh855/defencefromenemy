@@ -518,6 +518,20 @@ namespace MobRush
             countStyle.normal.textColor = new Color(0.2f, 0.9f, 1f);
             GUI.Label(new Rect(sw - 140, 15, 120, 40), $"👥 {aliveCount}", countStyle);
 
+            // Crowd Surge Dopamine Badge
+            if (aliveCount >= 40)
+            {
+                string hordeTitle = (aliveCount >= 150) ? "⚡ UNSTOPPABLE HORDE! ⚡" : (aliveCount >= 80) ? "🔥 MONSTER CROWD! 🔥" : "★ MEGA MOB! ★";
+                GUIStyle hordeStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 14,
+                    fontStyle = FontStyle.Bold
+                };
+                hordeStyle.normal.textColor = (aliveCount >= 150) ? new Color(1f, 0.85f, 0.1f) : new Color(0.2f, 1f, 0.5f);
+                GUI.Label(new Rect(0, 62f, sw, 22), hordeTitle, hordeStyle);
+            }
+
             // Cannon HP & Enemy Citadel HP Banner
             CannonController cannon = LevelManager.Instance?.cannon;
             BaseController citadel = LevelManager.Instance?.enemyBase;

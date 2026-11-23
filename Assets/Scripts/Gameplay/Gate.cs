@@ -9,7 +9,7 @@ namespace MobRush
         private static int nextUniqueId = 1;
 
         [Header("Gate Settings")]
-        public AffectsTeam affectsTeam = AffectsTeam.Both;
+        public AffectsTeam affectsTeam = AffectsTeam.PlayerOnly;
         public GateModifierType modifierType = GateModifierType.Multiply;
         public int value = 2;
         public TMP_Text displayText;
@@ -117,8 +117,8 @@ namespace MobRush
         {
             if (other.TryGetComponent<MobUnit>(out var unit))
             {
-                if (affectsTeam == AffectsTeam.PlayerOnly && unit.team != MobTeam.Player) return;
-                if (affectsTeam == AffectsTeam.EnemyOnly && unit.team != MobTeam.Enemy) return;
+                // CRITICAL FIX: Gates are exclusively for the player army! Enemies NEVER multiply or break gates!
+                if (unit == null || unit.team != MobTeam.Player) return;
 
                 if (unit.GetLastGateId() == gateId) return;
                 unit.SetLastGateId(gateId);
@@ -129,6 +129,8 @@ namespace MobRush
 
         private void ApplyGateEffect(MobUnit unit)
         {
+            if (unit == null || unit.team != MobTeam.Player) return;
+
             if (rootTransform != null)
             {
                 rootTransform.localScale = Vector3.one * 1.10f;
@@ -163,6 +165,7 @@ namespace MobRush
                         {
                             // Gate broken! Transforms into permanent moving x5 multiplier gate!
                             modifierType = GateModifierType.Multiply;
+                            affectsTeam = AffectsTeam.PlayerOnly;
                             value = 5;
                             isMoving = true;
                             moveRange = 1.8f;

@@ -25,6 +25,9 @@ namespace MobRush
         private readonly Queue<MobUnit> enemyPool = new Queue<MobUnit>();
         private Transform poolContainer;
 
+        private int activePlayerCount = 0;
+        private int activeEnemyCount = 0;
+
         private void Awake()
         {
             if (_instance == null)
@@ -72,6 +75,11 @@ namespace MobRush
 
         public MobUnit SpawnMob(MobTeam team, Vector3 position, Quaternion rotation)
         {
+            // Safety cap: Limit maximum living units to guarantee smooth 60fps & zero crash on Android
+            int maxCap = (team == MobTeam.Player) ? 350 : 120;
+            if (team == MobTeam.Player && activePlayerCount >= maxCap) return null;
+            if (team == MobTeam.Enemy && activeEnemyCount >= maxCap) return null;
+
             Queue<MobUnit> pool = (team == MobTeam.Player) ? playerPool : enemyPool;
             MobUnit unit = null;
 
@@ -99,6 +107,9 @@ namespace MobRush
             unit.ResetUnit();
             unit.gameObject.SetActive(true);
 
+            if (team == MobTeam.Player) activePlayerCount++;
+            else activeEnemyCount++;
+
             return unit;
         }
 
@@ -111,52 +122,35 @@ namespace MobRush
 
             if (unit.team == MobTeam.Player)
             {
+                activePlayerCount = Mathf.Max(0, activePlayerCount - 1);
                 if (playerPool != null && !playerPool.Contains(unit))
                     playerPool.Enqueue(unit);
             }
             else
             {
+                activeEnemyCount = Mathf.Max(0, activeEnemyCount - 1);
                 if (enemyPool != null && !enemyPool.Contains(unit))
                     enemyPool.Enqueue(unit);
             }
         }
 
-        public int GetActivePlayerUnitCount()
-        {
-            int count = 0;
-            MobUnit[] activeUnits = FindObjectsByType<MobUnit>(FindObjectsSortMode.None);
-            for (int i = 0; i < activeUnits.Length; i++)
-            {
-                if (activeUnits[i].gameObject.activeInHierarchy && activeUnits[i].team == MobTeam.Player)
-                {
-                    count++;
-                }
-            }
-            return count;
-        }
-
-        public int GetActiveEnemyUnitCount()
-        {
-            int count = 0;
-            MobUnit[] activeUnits = FindObjectsByType<MobUnit>(FindObjectsSortMode.None);
-            for (int i = 0; i < activeUnits.Length; i++)
-            {
-                if (activeUnits[i].gameObject.activeInHierarchy && activeUnits[i].team == MobTeam.Enemy)
-                {
-                    count++;
-                }
-            }
-            return count;
-        }
+        public int GetActivePlayerUnitCount() => activePlayerCount;
+        public int GetActiveEnemyUnitCount() => activeEnemyCount;
 
         public void ClearActiveUnits()
         {
+            activePlayerCount = 0;
+            activeEnemyCount = 0;
+
             MobUnit[] activeUnits = FindObjectsByType<MobUnit>(FindObjectsSortMode.None);
             foreach (var u in activeUnits)
             {
                 if (u != null && u.gameObject != null && u.gameObject.activeInHierarchy)
                 {
-                    ReturnMob(u);
+                    u.gameObject.SetActive(false);
+                    if (poolContainer != null) u.transform.SetParent(poolContainer);
+                    if (u.team == MobTeam.Player && playerPool != null && !playerPool.Contains(u)) playerPool.Enqueue(u);
+                    else if (u.team == MobTeam.Enemy && enemyPool != null && !enemyPool.Contains(u)) enemyPool.Enqueue(u);
                 }
             }
         }
