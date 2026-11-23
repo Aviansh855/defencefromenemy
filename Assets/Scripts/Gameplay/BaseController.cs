@@ -21,6 +21,13 @@ namespace MobRush
         {
             Collider col = GetComponent<Collider>();
             if (col != null) col.isTrigger = true;
+            if (currentHealth <= 0) currentHealth = maxHealth;
+        }
+
+        private void Start()
+        {
+            if (currentHealth <= 0) currentHealth = maxHealth;
+            UpdateUI();
         }
 
         public void Initialize(int health)

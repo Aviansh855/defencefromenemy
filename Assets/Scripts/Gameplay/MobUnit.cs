@@ -30,10 +30,17 @@ namespace MobRush
         private bool isDead = false;
         private int lastGateId = -1;
 
+        [Header("Juice & Animation")]
+        private float animOffset;
+        private float baseHeight;
+
         public bool IsDead => isDead;
 
         private void Awake()
         {
+            animOffset = Random.Range(0f, 10f);
+            baseHeight = transform.position.y;
+
             rb = GetComponent<Rigidbody>();
             if (rb != null)
             {
@@ -118,6 +125,17 @@ namespace MobRush
 
         public void SetLastGateId(int gateId) => lastGateId = gateId;
         public int GetLastGateId() => lastGateId;
+
+        private void Update()
+        {
+            if (isDead) return;
+
+            // Authentic Mob Control running animation (lean forward + lateral waddle bounce)
+            float runCycle = (Time.time + animOffset) * (moveSpeed * 2.8f);
+            float forwardTilt = (team == MobTeam.Player) ? 10f : -10f;
+            float roll = Mathf.Sin(runCycle) * 7f;
+            transform.rotation = Quaternion.Euler(forwardTilt, 0f, roll);
+        }
 
         private void FixedUpdate()
         {

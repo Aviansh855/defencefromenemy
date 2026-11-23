@@ -23,7 +23,7 @@ namespace MobRush
         {
             if (other.TryGetComponent<MobUnit>(out var unit) && unit.team == MobTeam.Enemy)
             {
-                int dmg = Mathf.Max(1, unit.combatPower * 10);
+                int dmg = Mathf.Max(1, unit.combatPower * 4);
                 unit.Die();
 
                 if (AudioManager.Instance != null)

@@ -54,9 +54,9 @@ namespace MobRush
             }
 
             spawnedSoFar = 0;
-            // Provide a pleasant, balanced opening delay of 1.2s instead of dumping instantly at frame 0
-            lastBurstTime = Time.time - burstInterval + 1.2f;
-            lastContinuousFireTime = Time.time + 0.6f;
+            // Immediate active horde deployment for authentic tug-of-war front line clash
+            lastBurstTime = Time.time - burstInterval + 0.6f;
+            lastContinuousFireTime = Time.time + 0.15f;
             isSpawningActive = true;
 
             if (activeBurstCoroutine != null)

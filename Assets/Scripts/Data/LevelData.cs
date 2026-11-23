@@ -181,19 +181,19 @@ namespace MobRush
                 levelId = levelId,
                 title = $"Level {levelId} — {title}",
                 objectiveText = desc,
-                trackLength = 24f + Mathf.Min(8f, levelId * 0.05f),
-                playerCannonHealth = pHP,
-                baseHealth = eHP,
+                trackLength = 36f + Mathf.Min(14f, levelId * 0.1f),
+                playerCannonHealth = Mathf.Max(200, pHP),
+                baseHealth = Mathf.Max(200, eHP * 5),
                 towerCount = towers,
-                towerHealth = towerHP,
-                burstSize = burst,
-                burstInterval = interval,
+                towerHealth = Mathf.Max(50, towerHP * 2),
+                burstSize = Mathf.Max(6, burst),
+                burstInterval = Mathf.Clamp(interval * 0.6f, 1.2f, 2.5f),
                 burstDuration = 0.15f,
                 enableContinuousFire = true,
-                enemyContinuousRate = Mathf.Clamp(1.0f + (levelId * 0.01f), 1.0f, 2.8f),
-                totalEnemiesToSpawn = 40 + levelId * 2,
+                enemyContinuousRate = Mathf.Clamp(2.0f + (levelId * 0.02f), 2.0f, 4.0f),
+                totalEnemiesToSpawn = 80 + levelId * 5,
                 completionReward = coins,
-                completionBricks = bricks,
+                completionBricks = Mathf.Max(25, bricks),
                 completionShields = shields,
                 completionCards = cards,
                 completionStars = stars
@@ -210,33 +210,33 @@ namespace MobRush
             // Level 1: Meadow Dawn (Opener: one x2 gate, no hazard)
             if (levelId == 1)
             {
-                config.gates.Add(new GateConfig { position = new Vector3(0f, 1f, 6.0f), type = GateModifierType.Multiply, value = 2 });
+                config.gates.Add(new GateConfig { position = new Vector3(0f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
                 return;
             }
 
             // Level 2: Meadow Dusk (Both lanes help: x2 and +20)
             if (levelId == 2)
             {
-                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 6.0f), type = GateModifierType.Multiply, value = 2 });
-                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 6.0f), type = GateModifierType.Add, value = 20 });
+                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
+                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Add, value = 20 });
                 return;
             }
 
             // Level 3: Meadow Fog (Safe lane x2, other lane -5)
             if (levelId == 3)
             {
-                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 6.0f), type = GateModifierType.Multiply, value = 2 });
-                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 6.0f), type = GateModifierType.Subtract, value = 5 });
+                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
+                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Subtract, value = 5 });
                 return;
             }
 
             // Level 4: Meadow Rain (First moving bar, hits only player, safe lane has no bar)
             if (levelId == 4)
             {
-                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 6.0f), type = GateModifierType.Multiply, value = 2 });
+                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
                 config.hazards.Add(new HazardConfig
                 {
-                    position = new Vector3(1.8f, 0.5f, 10.0f),
+                    position = new Vector3(1.8f, 0.5f, 16.0f),
                     scale = new Vector3(2.5f, 0.8f, 0.5f),
                     isOscillating = false,
                     affectsTeam = AffectsTeam.PlayerOnly,
@@ -248,8 +248,8 @@ namespace MobRush
             // Level 5: Meadow Gold
             if (levelId == 5)
             {
-                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 6.0f), type = GateModifierType.Multiply, value = 2 });
-                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 6.0f), type = GateModifierType.Add, value = 15 });
+                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
+                config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Add, value = 15 });
                 return;
             }
 
@@ -257,11 +257,11 @@ namespace MobRush
             if (levelId == 6)
             {
                 // Safe lane on left
-                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 6.0f), type = GateModifierType.Multiply, value = 2 });
+                config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = 2 });
                 // Risky block on right, center object is PlayerOnly
                 config.hazards.Add(new HazardConfig
                 {
-                    position = new Vector3(1.8f, 0.5f, 10.0f),
+                    position = new Vector3(1.8f, 0.5f, 16.0f),
                     scale = new Vector3(2.2f, 0.8f, 0.5f),
                     isOscillating = false,
                     affectsTeam = AffectsTeam.PlayerOnly,
@@ -273,18 +273,18 @@ namespace MobRush
             // General 200 level progression layout generator
             // Left safe lane gate
             int gateVal = (levelId % 5 == 0) ? 3 : 2;
-            config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 6.0f), type = GateModifierType.Multiply, value = gateVal });
+            config.gates.Add(new GateConfig { position = new Vector3(-1.8f, 1f, 12.0f), type = GateModifierType.Multiply, value = gateVal });
 
             // Right lane gate or choice
             int addVal = 10 + (levelId % 20);
-            config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 6.0f), type = GateModifierType.Add, value = addVal });
+            config.gates.Add(new GateConfig { position = new Vector3(1.8f, 1f, 12.0f), type = GateModifierType.Add, value = addVal });
 
             // Center / lane hazard if blockCost > 0 or periodic
             if (blockCost > 0 || levelId >= 7)
             {
                 config.hazards.Add(new HazardConfig
                 {
-                    position = new Vector3(1.5f, 0.5f, 11.5f),
+                    position = new Vector3(1.5f, 0.5f, 16.5f),
                     scale = new Vector3(2.4f, 0.8f, 0.5f),
                     isOscillating = (levelId % 4 == 0),
                     speed = 2.0f,
@@ -299,12 +299,12 @@ namespace MobRush
             {
                 config.gates.Add(new GateConfig
                 {
-                    position = new Vector3(0f, 1f, 15.5f),
+                    position = new Vector3(0f, 1f, 22.0f),
                     type = GateModifierType.Multiply,
                     value = (levelId % 10 == 0) ? 4 : 3,
-                    isMoving = (levelId % 3 == 0),
-                    moveRange = 1.5f,
-                    moveSpeed = 2f
+                    isMoving = true,
+                    moveRange = 1.6f,
+                    moveSpeed = 2.2f
                 });
             }
         }

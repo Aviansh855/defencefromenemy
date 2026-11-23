@@ -80,11 +80,14 @@ namespace MobRush
 
         private void Start()
         {
-            // Show App Open Ad on first startup
-            if (!hasShownAppOpenAd)
-            {
-                ShowAppOpenAd();
-            }
+            // Do not block player on cold launch; let them enjoy the game!
+            hasShownAppOpenAd = true;
+            isShowingOverlay = false;
+        }
+
+        public void HideAllOverlayAds()
+        {
+            isShowingOverlay = false;
         }
 
         private void Update()

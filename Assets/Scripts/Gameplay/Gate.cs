@@ -45,10 +45,16 @@ namespace MobRush
 
         private void Update()
         {
-            if (isMoving && rootTransform != null)
+            if (rootTransform != null)
             {
-                float offset = (Mathf.PingPong(Time.time * moveSpeed, moveRange * 2) - moveRange);
-                rootTransform.position = new Vector3(startPosition.x + offset, startPosition.y, startPosition.z);
+                if (isMoving)
+                {
+                    float offset = (Mathf.PingPong(Time.time * moveSpeed, moveRange * 2) - moveRange);
+                    rootTransform.position = new Vector3(startPosition.x + offset, startPosition.y, startPosition.z);
+                }
+
+                // Smooth recoil recovery from crowd pass punch
+                rootTransform.localScale = Vector3.Lerp(rootTransform.localScale, Vector3.one, 12f * Time.deltaTime);
             }
         }
 
@@ -121,6 +127,11 @@ namespace MobRush
 
         private void ApplyGateEffect(MobUnit unit)
         {
+            if (rootTransform != null)
+            {
+                rootTransform.localScale = Vector3.one * 1.10f;
+            }
+
             switch (modifierType)
             {
                 case GateModifierType.Multiply:

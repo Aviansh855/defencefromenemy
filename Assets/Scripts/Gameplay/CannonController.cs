@@ -220,6 +220,7 @@ namespace MobRush
                 if (barrelVisual != null)
                 {
                     barrelVisual.localPosition = initialBarrelLocalPos - Vector3.forward * recoilAmount;
+                    barrelVisual.localScale = new Vector3(1.15f, 0.82f, 1.15f);
                 }
             }
         }
@@ -243,8 +244,13 @@ namespace MobRush
                 MobUnit champ = ObjectPooler.Instance.SpawnMob(MobTeam.Player, pos, Quaternion.identity);
                 if (champ != null)
                 {
-                    champ.transform.localScale = new Vector3(1.75f, 1.75f, 1.75f);
-                    champ.combatPower = UpgradeConfig.GetUnitStrength(SaveManager.Data.strengthLevel) * 6;
+                    champ.transform.localScale = new Vector3(2.0f, 2.0f, 2.0f);
+                    champ.combatPower = UpgradeConfig.GetUnitStrength(SaveManager.Data.strengthLevel) * 8;
+
+                    if (champ.bodyRenderer != null)
+                    {
+                        champ.bodyRenderer.material.color = new Color(1f, 0.85f, 0.15f); // Sirion Gold Champion
+                    }
 
                     if (AudioManager.Instance != null)
                     {
@@ -259,6 +265,7 @@ namespace MobRush
             if (barrelVisual != null)
             {
                 barrelVisual.localPosition = Vector3.Lerp(barrelVisual.localPosition, initialBarrelLocalPos, 16f * Time.deltaTime);
+                barrelVisual.localScale = Vector3.Lerp(barrelVisual.localScale, Vector3.one, 16f * Time.deltaTime);
             }
         }
 
