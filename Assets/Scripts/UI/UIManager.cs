@@ -36,6 +36,12 @@ namespace MobRush
         private int lastBricksDisplay = 0;
         private bool hasClaimedDouble = false;
 
+        // End-of-Level Multiplier Needle Minigame (9.5 Juice)
+        private float needlePos = 0.5f;
+        private bool isNeedleStopped = false;
+        private int stoppedMultiplier = 2;
+        private bool hasClaimedNeedleBonus = false;
+
         // Feedback toasts
         private string feedbackMessage = "";
         private float feedbackTimer = 0f;
@@ -174,8 +180,11 @@ namespace MobRush
         {
             currentState = UIState.Win;
             lastRewardDisplay = reward;
-            lastBricksDisplay = GameManager.Instance != null ? GameManager.Instance.LastEarnedBricks : 5;
+            lastBricksDisplay = GameManager.Instance != null ? GameManager.Instance.LastEarnedBricks : 15;
             hasClaimedDouble = false;
+            isNeedleStopped = false;
+            hasClaimedNeedleBonus = false;
+            stoppedMultiplier = 2;
         }
 
         public void UpdateWinRewardDisplay(int newReward)
@@ -694,8 +703,8 @@ namespace MobRush
         {
             float sw = DesignWidth;
             float sh = DesignHeight;
-            float w = 320f;
-            float h = 370f;
+            float w = 340f;
+            float h = 470f;
             float x = (sw - w) / 2f;
             float y = (sh - h) / 2f;
 
@@ -708,35 +717,106 @@ namespace MobRush
                 fontStyle = FontStyle.Bold
             };
             winTitle.normal.textColor = new Color(0.2f, 0.9f, 0.3f);
-            GUI.Label(new Rect(x, y + 16, w, 36), "VICTORY!", winTitle);
+            GUI.Label(new Rect(x, y + 12, w, 34), "VICTORY!", winTitle);
 
             GUIStyle sub = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 15
+                fontSize = 14
             };
             sub.normal.textColor = Color.white;
-            GUI.Label(new Rect(x, y + 54, w, 22), "Enemy Citadel Captured!", sub);
+            GUI.Label(new Rect(x, y + 46, w, 20), "Enemy Citadel Captured!", sub);
 
             // Granted rewards display
             GUIStyle rewardStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 20,
+                fontSize = 19,
                 fontStyle = FontStyle.Bold
             };
             rewardStyle.normal.textColor = new Color(1f, 0.85f, 0.2f);
-            GUI.Label(new Rect(x, y + 80, w, 30), $"🪙 +{lastRewardDisplay} Coins   🧱 +{lastBricksDisplay} Bricks", rewardStyle);
+            GUI.Label(new Rect(x, y + 68, w, 26), $"🪙 +{lastRewardDisplay} Coins   🧱 +{lastBricksDisplay} Bricks", rewardStyle);
+
+            // MULTIPLIER NEEDLE MINIGAME
+            float gaugeY = y + 98f;
+            float gaugeW = w - 40f;
+            float gaugeX = x + 20f;
+            float gaugeH = 28f;
+
+            if (!isNeedleStopped)
+            {
+                needlePos = Mathf.PingPong(Time.unscaledTime * 2.2f, 1f);
+            }
+
+            // Draw Gauge background & segments: [2X] [3X] [5X] [10X] [5X] [3X] [2X]
+            GUI.Box(new Rect(gaugeX, gaugeY, gaugeW, gaugeH), "");
+            GUIStyle segStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 11,
+                fontStyle = FontStyle.Bold
+            };
+            segStyle.normal.textColor = Color.yellow;
+            GUI.Label(new Rect(gaugeX, gaugeY + 5, gaugeW, 18), "2X  |  3X  |  5X  |  ★ 10X ★  |  5X  |  3X  |  2X", segStyle);
+
+            // Draw needle indicator
+            float needleXPos = gaugeX + needlePos * (gaugeW - 14f);
+            GUI.backgroundColor = isNeedleStopped ? Color.green : Color.red;
+            GUI.Box(new Rect(needleXPos, gaugeY - 6f, 14f, gaugeH + 12f), "▼");
+            GUI.backgroundColor = Color.white;
 
             float bw = w - 50f;
             float bx = x + 25f;
+            float nextY = gaugeY + gaugeH + 14f;
 
-            // Double Reward: "Play a rewarded ad. On the completed callback only, grant the same coin amount once more and hide this button. If the ad fails or is skipped, grant nothing and leave the button available."
-            float nextY = y + 120f;
+            if (!isNeedleStopped)
+            {
+                GUI.backgroundColor = new Color(1f, 0.85f, 0.1f);
+                if (GUI.Button(new Rect(bx, nextY, bw, 42), "🎯 TAP TO STOP & MULTIPLY!"))
+                {
+                    isNeedleStopped = true;
+                    float d = Mathf.Abs(needlePos - 0.5f);
+                    if (d < 0.08f) stoppedMultiplier = 10;
+                    else if (d < 0.22f) stoppedMultiplier = 5;
+                    else if (d < 0.38f) stoppedMultiplier = 3;
+                    else stoppedMultiplier = 2;
+
+                    if (!hasClaimedNeedleBonus)
+                    {
+                        hasClaimedNeedleBonus = true;
+                        int bonus = (stoppedMultiplier - 1) * lastRewardDisplay;
+                        SaveManager.Data.coins += bonus;
+                        lastRewardDisplay *= stoppedMultiplier;
+                        SaveManager.Save();
+                        if (AudioManager.Instance != null)
+                        {
+                            AudioManager.Instance.PlayChampionSpawn();
+                            AudioManager.Instance.PlayCoinPickup();
+                        }
+                        ShowToast($"🎉 JACKPOT! {stoppedMultiplier}X MULTIPLIER GRANTED!");
+                    }
+                }
+                GUI.backgroundColor = Color.white;
+                nextY += 48f;
+            }
+            else
+            {
+                GUIStyle hitStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 15,
+                    fontStyle = FontStyle.Bold
+                };
+                hitStyle.normal.textColor = new Color(0.3f, 1f, 0.4f);
+                GUI.Label(new Rect(x, nextY, w, 24), $"🎉 {stoppedMultiplier}X BONUS APPLIED!", hitStyle);
+                nextY += 28f;
+            }
+
+            // Double Reward / Extra Ad button
             if (!hasClaimedDouble)
             {
                 GUI.backgroundColor = new Color(1f, 0.75f, 0.1f);
-                if (GUI.Button(new Rect(bx, nextY, bw, 46), "🎁 2X COINS (Ad)"))
+                if (GUI.Button(new Rect(bx, nextY, bw, 40), "🎁 EXTRA 2X COINS (Ad)"))
                 {
                     if (AudioManager.Instance != null) AudioManager.Instance.PlayUITap();
                     GameManager.Instance?.DoubleReward(
@@ -749,28 +829,28 @@ namespace MobRush
                         }
                     );
                 }
-                nextY += 56f;
+                nextY += 46f;
             }
 
-            // Next Level: "Load the next unlocked level immediately."
+            // Next Level
             GUI.backgroundColor = new Color(0.1f, 0.75f, 1f);
-            if (GUI.Button(new Rect(bx, nextY, bw, 46), "NEXT LEVEL ▶"))
+            if (GUI.Button(new Rect(bx, nextY, bw, 44), "NEXT LEVEL ▶"))
             {
                 if (AudioManager.Instance != null) AudioManager.Instance.PlayUITap();
                 GameManager.Instance?.NextLevel();
             }
 
-            // Upgrade: "Open the upgrade panel on top. Closing it returns to this win panel, not into a half-finished fight."
+            // Upgrades
             GUI.backgroundColor = new Color(0.2f, 0.65f, 1f);
-            if (GUI.Button(new Rect(bx, nextY + 54f, bw, 42), "⚡  UPGRADES"))
+            if (GUI.Button(new Rect(bx, nextY + 50f, bw, 38), "⚡  UPGRADES"))
             {
                 if (AudioManager.Instance != null) AudioManager.Instance.PlayUITap();
                 ShowUpgradeShop();
             }
 
-            // Home: "Save, then load the main menu. The win reward is already saved before this tap."
+            // Main Menu
             GUI.backgroundColor = new Color(0.6f, 0.65f, 0.75f);
-            if (GUI.Button(new Rect(bx, nextY + 104f, bw, 40), "MAIN MENU"))
+            if (GUI.Button(new Rect(bx, nextY + 94f, bw, 36), "MAIN MENU"))
             {
                 if (AudioManager.Instance != null) AudioManager.Instance.PlayUITap();
                 SaveManager.Save();

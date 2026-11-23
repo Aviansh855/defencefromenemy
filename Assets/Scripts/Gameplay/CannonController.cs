@@ -244,17 +244,20 @@ namespace MobRush
                 MobUnit champ = ObjectPooler.Instance.SpawnMob(MobTeam.Player, pos, Quaternion.identity);
                 if (champ != null)
                 {
-                    champ.transform.localScale = new Vector3(2.0f, 2.0f, 2.0f);
-                    champ.combatPower = UpgradeConfig.GetUnitStrength(SaveManager.Data.strengthLevel) * 8;
+                    champ.transform.localScale = new Vector3(2.2f, 2.2f, 2.2f);
+                    champ.combatPower = UpgradeConfig.GetUnitStrength(SaveManager.Data.strengthLevel) * 10;
 
                     if (champ.bodyRenderer != null)
                     {
                         champ.bodyRenderer.material.color = new Color(1f, 0.85f, 0.15f); // Sirion Gold Champion
                     }
 
+                    // Tactile Feedback: Screenshake & Champion Horn Fanfare
+                    CameraShake.Shake(0.24f, 0.18f);
+
                     if (AudioManager.Instance != null)
                     {
-                        AudioManager.Instance.PlayUpgrade();
+                        AudioManager.Instance.PlayChampionSpawn();
                     }
                 }
             }

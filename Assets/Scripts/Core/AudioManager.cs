@@ -26,6 +26,12 @@ namespace MobRush
         private AudioClip defeatClip;
         private AudioClip uiTapClip;
         private AudioClip upgradeClip;
+        private AudioClip championClip;
+        private AudioClip explosionClip;
+        private AudioClip brickCollectClip;
+
+        private int gateComboCount = 0;
+        private float lastGateSoundTime = 0f;
 
         private void Awake()
         {
@@ -63,6 +69,9 @@ namespace MobRush
             defeatClip = CreateDefeatClip("Defeat");
             uiTapClip = CreateToneClip("UITap", 600f, 0.03f, 0.2f, false);
             upgradeClip = CreateChimeClip("Upgrade", 523f, 1046f, 0.25f, 0.45f);
+            championClip = CreateChimeClip("ChampionHorn", 330f, 660f, 0.45f, 0.7f);
+            explosionClip = CreateToneClip("Explosion", 90f, 0.35f, 0.8f, true);
+            brickCollectClip = CreateToneClip("BrickCollect", 1200f, 0.04f, 0.25f, false);
         }
 
         private void StartAmbientBeat()
@@ -92,17 +101,49 @@ namespace MobRush
 
         public void PlayShoot() => PlayClip(shootClip, 0.2f);
         public void PlayPop() => PlayClip(popClip, 0.3f);
-        public void PlayGate() => PlayClip(gateChimeClip, 0.45f);
+
+        // Dopamine-inducing musical arpeggio crescendo on crowd gate pass
+        public void PlayGate()
+        {
+            if (Time.time - lastGateSoundTime < 0.5f)
+            {
+                gateComboCount++;
+            }
+            else
+            {
+                gateComboCount = 0;
+            }
+            lastGateSoundTime = Time.time;
+
+            float pitch = Mathf.Clamp(1.0f + (gateComboCount % 12) * 0.05f, 1.0f, 2.2f);
+            PlayClipWithPitch(gateChimeClip, 0.45f, pitch);
+        }
+
         public void PlayBaseHit() => PlayClip(baseHitClip, 0.35f);
         public void PlayWin() => PlayClip(winFanfareClip, 0.6f);
         public void PlayDefeat() => PlayClip(defeatClip, 0.55f);
         public void PlayUITap() => PlayClip(uiTapClip, 0.3f);
         public void PlayUpgrade() => PlayClip(upgradeClip, 0.5f);
+        public void PlayChampionSpawn() => PlayClip(championClip, 0.7f);
+        public void PlayBoomExplosion() => PlayClip(explosionClip, 0.85f);
+        public void PlayBrickCollect() => PlayClip(brickCollectClip, 0.3f);
+        public void PlayCoinPickup() => PlayClip(brickCollectClip, 0.45f);
+
+        private void PlayClipWithPitch(AudioClip clip, float vol, float pitch)
+        {
+            if (clip != null && SaveManager.Data.sfxEnabled)
+            {
+                sfxSource.pitch = pitch;
+                sfxSource.PlayOneShot(clip, vol);
+                sfxSource.pitch = 1.0f;
+            }
+        }
 
         private void PlayClip(AudioClip clip, float vol)
         {
             if (clip != null && SaveManager.Data.sfxEnabled)
             {
+                sfxSource.pitch = 1.0f;
                 sfxSource.PlayOneShot(clip, vol);
             }
         }

@@ -248,6 +248,8 @@ namespace MobRush
             if (isDead) return;
             isDead = true;
 
+            SpawnDeathPop();
+
             if (ObjectPooler.Instance != null)
             {
                 ObjectPooler.Instance.ReturnMob(this);
@@ -255,6 +257,27 @@ namespace MobRush
             else
             {
                 Destroy(gameObject);
+            }
+        }
+
+        private void SpawnDeathPop()
+        {
+            Color c = (team == MobTeam.Player) ? new Color(0.2f, 0.8f, 1f) : new Color(1f, 0.25f, 0.25f);
+            for (int i = 0; i < 3; i++)
+            {
+                GameObject p = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                p.transform.position = transform.position + Random.insideUnitSphere * 0.15f;
+                p.transform.localScale = Vector3.one * 0.14f;
+
+                Renderer r = p.GetComponent<Renderer>();
+                if (r != null) r.material.color = c;
+
+                Collider col = p.GetComponent<Collider>();
+                if (col != null) col.enabled = false;
+
+                Rigidbody rb = p.AddComponent<Rigidbody>();
+                rb.linearVelocity = (Vector3.up * 2.2f) + Random.insideUnitSphere * 1.8f;
+                Destroy(p, 0.28f);
             }
         }
     }
